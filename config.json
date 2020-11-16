@@ -1,7 +1,7 @@
 {
   "ZookeeperUrl": "localhost:2181",
-  "KafkaGroupId": "kafka2mqtt",
   "KafkaTopic": "topic",
+  "KafḱaOffset": "latest",
   "FilterPath": "",
   "FilterValue": "",
   "MqttUser": "keycloak-client",

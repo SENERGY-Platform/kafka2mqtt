@@ -29,8 +29,8 @@ import (
 
 type Config struct {
 	ZookeeperUrl string //host1:2181,host2:2181/chroot
-	KafkaGroupId string
 	KafkaTopic   string
+	KafkaOffset  string
 
 	FilterPath  string
 	FilterValue string
@@ -45,16 +45,16 @@ type Config struct {
 
 //loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
 func LoadConfig(location string) (config Config, err error) {
-	file, error := os.Open(location)
-	if error != nil {
-		log.Println("error on config load: ", error)
-		return config, error
+	file, err2 := os.Open(location)
+	if err2 != nil {
+		log.Println("error on config load: ", err2)
+		return config, err2
 	}
 	decoder := json.NewDecoder(file)
-	error = decoder.Decode(&config)
-	if error != nil {
-		log.Println("invalid config json: ", error)
-		return config, error
+	err2 = decoder.Decode(&config)
+	if err2 != nil {
+		log.Println("invalid config json: ", err2)
+		return config, err2
 	}
 	handleEnvironmentVars(&config)
 	return config, nil

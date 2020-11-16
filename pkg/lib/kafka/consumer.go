@@ -26,8 +26,11 @@ import (
 	"time"
 )
 
-func NewConsumer(zk string, groupid string, topic string, listener func(topic string, msg []byte, time time.Time) error, errorhandler func(err error, consumer *Consumer)) (consumer *Consumer, err error) {
-	consumer = &Consumer{groupId: groupid, zkUrl: zk, topic: topic, listener: listener, errorhandler: errorhandler}
+const Latest = kafka.LastOffset
+const Earliest = kafka.FirstOffset
+
+func NewConsumer(zk string, topic string, offset int64, listener func(topic string, msg []byte, time time.Time) error, errorhandler func(err error, consumer *Consumer)) (consumer *Consumer, err error) {
+	consumer = &Consumer{zkUrl: zk, topic: topic, listener: listener, errorhandler: errorhandler, offset: offset}
 	err = consumer.start()
 	return
 }
@@ -35,13 +38,13 @@ func NewConsumer(zk string, groupid string, topic string, listener func(topic st
 type Consumer struct {
 	count        int
 	zkUrl        string
-	groupId      string
 	topic        string
 	ctx          context.Context
 	cancel       context.CancelFunc
 	listener     func(topic string, msg []byte, time time.Time) error
 	errorhandler func(err error, consumer *Consumer)
 	mux          sync.Mutex
+	offset       int64
 }
 
 func (this *Consumer) Stop() {
@@ -64,12 +67,16 @@ func (this *Consumer) start() error {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		CommitInterval: 0, //synchronous commits
 		Brokers:        broker,
-		GroupID:        this.groupId,
 		Topic:          this.topic,
 		MaxWait:        1 * time.Second,
 		Logger:         log.New(ioutil.Discard, "", 0),
 		ErrorLogger:    log.New(ioutil.Discard, "", 0),
 	})
+	err = r.SetOffset(this.offset)
+	if err != nil {
+		log.Println("ERROR: unable to set offset", err)
+		return err
+	}
 	go func() {
 		for {
 			select {
@@ -89,15 +96,9 @@ func (this *Consumer) start() error {
 				}
 				err = this.listener(m.Topic, m.Value, m.Time)
 				if err != nil {
-					log.Println("ERROR: unable to handle message (no commit)", err)
-				} else {
-					err = r.CommitMessages(this.ctx, m)
-					if err != nil {
-						log.Println("ERROR: while committing message ", this.topic, err)
-						this.errorhandler(err, this)
-						return
-					}
+					log.Println("ERROR: unable to handle message", err)
 				}
+
 			}
 		}
 	}()
@@ -106,5 +107,7 @@ func (this *Consumer) start() error {
 
 func (this *Consumer) Restart() {
 	this.Stop()
-	this.start()
+	err := this.start()
+	log.Println("ERROR: while restarting ", this.topic, err)
+	this.errorhandler(err, this)
 }
