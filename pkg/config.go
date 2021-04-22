@@ -18,7 +18,6 @@ package pkg
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"reflect"
@@ -28,9 +27,10 @@ import (
 )
 
 type Config struct {
-	ZookeeperUrl string //host1:2181,host2:2181/chroot
-	KafkaTopic   string
-	KafkaOffset  string
+	KafkaBootstrap string
+	KafkaTopic     string
+	KafkaOffset    string
+	KafkaGroupId   string
 
 	FilterPath  string
 	FilterValue string
@@ -40,7 +40,8 @@ type Config struct {
 	MqttPw       string //keycloak-secret
 	MqttClientId string
 	MqttTopic    string
-	MqttDebug    bool
+
+	Debug bool
 }
 
 //loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
@@ -84,7 +85,7 @@ func handleEnvironmentVars(config *Config) {
 		envName := fieldNameToEnvName(fieldName)
 		envValue := os.Getenv(envName)
 		if envValue != "" {
-			fmt.Println("use environment variable: ", envName, " = ", envValue)
+			log.Println("use environment variable: ", envName, " = ", envValue)
 			if configValue.FieldByName(fieldName).Kind() == reflect.Int64 {
 				i, _ := strconv.ParseInt(envValue, 10, 64)
 				configValue.FieldByName(fieldName).SetInt(i)

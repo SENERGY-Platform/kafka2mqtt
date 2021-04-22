@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package mqtt
 
 import (
@@ -45,6 +44,7 @@ func NewPublisher(ctx context.Context, wg *sync.WaitGroup, broker string, user s
 		log.Println("Error on Publisher.Connect(): ", broker, user, pw, client, token.Error())
 		return mqtt, token.Error()
 	}
+	log.Println("MQTT publisher up and running...")
 	wg.Add(1)
 	go func() {
 		<-ctx.Done()

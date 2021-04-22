@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package main
 
 import (
@@ -25,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -43,13 +43,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var shutdownTime time.Time
 	go func() {
 		shutdown := make(chan os.Signal, 1)
 		signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 		sig := <-shutdown
 		log.Println("received shutdown signal", sig)
+		shutdownTime = time.Now()
 		cancel()
 	}()
 
 	wg.Wait()
+	log.Println("Shutdown complete, took", time.Since(shutdownTime))
 }
