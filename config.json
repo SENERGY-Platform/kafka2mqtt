@@ -10,5 +10,5 @@
   "MqttBroker": "localhost:1883",
   "MqttQos": 0,
   "MqttTopicMapping": "[{\"query\":\".device_id\", \"topic\":\"kafka2mqtt/device_id\"}, {\"query\":\".\", \"topic\":\"kafka2mqtt/full\"}, {\"query\":\".value\", \"topic\":\"kafka2mqtt/value\"}]",
-  "Debug": true
+  "Debug": false
 }
