@@ -1,14 +1,14 @@
 {
   "KafkaBootstrap": "localhost:9092",
-  "KafkaTopic": "topic",
-  "KafkaOffset": "latest",
-  "KafkaGroupId": "kafka2mqt",
-  "FilterPath": "",
-  "FilterValue": "",
+  "KafkaTopic": "topic3",
+  "KafkaOffset": "earliest",
+  "KafkaGroupId": "kafka2mqtt-01",
+  "FilterQuery": ".device_id==\"1234\"",
   "MqttUser": "keycloak-client",
   "MqttPw": "keycloak-secret",
   "MqttClientId": "kafka2mqtt",
   "MqttBroker": "localhost:1883",
-  "MqttTopic": "topic",
-  "Debug": false
+  "MqttQos": 0,
+  "MqttTopicMapping": "[{\"query\":\".device_id\", \"topic\":\"kafka2mqtt/device_id\"}, {\"query\":\".\", \"topic\":\"kafka2mqtt/full\"}, {\"query\":\".value\", \"topic\":\"kafka2mqtt/value\"}]",
+  "Debug": true
 }

@@ -20,23 +20,24 @@ import (
 	"context"
 	"errors"
 	paho "github.com/eclipse/paho.mqtt.golang"
-	uuid "github.com/satori/go.uuid"
 	"log"
 	"sync"
 )
 
 type Publisher struct {
 	client paho.Client
+	qos    byte
+	debug  bool
 }
 
-func NewPublisher(ctx context.Context, wg *sync.WaitGroup, broker string, user string, pw string, client string) (mqtt *Publisher, err error) {
-	mqtt = &Publisher{}
+func NewPublisher(ctx context.Context, wg *sync.WaitGroup, broker string, user string, pw string, client string, qos uint8, debug bool) (mqtt *Publisher, err error) {
+	mqtt = &Publisher{debug: debug, qos: qos}
 	options := paho.NewClientOptions().
 		SetPassword(pw).
 		SetUsername(user).
 		SetAutoReconnect(true).
 		SetCleanSession(true).
-		SetClientID(client + "_" + uuid.NewV4().String()).
+		SetClientID(client).
 		AddBroker(broker)
 
 	mqtt.client = paho.NewClient(options)
@@ -59,7 +60,10 @@ func (this *Publisher) Publish(topic string, msg string) (err error) {
 	if !this.client.IsConnected() {
 		return errors.New("mqtt client not connected")
 	}
-	token := this.client.Publish(topic, 2, false, msg)
+	token := this.client.Publish(topic, this.qos, false, msg)
+	if this.debug {
+		log.Printf("Publish Mqtt on topic %v: %v", topic, msg)
+	}
 	if token.Wait() && token.Error() != nil {
 		return token.Error()
 	}

@@ -18,6 +18,8 @@ package pkg
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/kafka"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/mqtt"
 	"log"
@@ -28,20 +30,28 @@ import (
 func Start(ctx context.Context, config Config) (wg *sync.WaitGroup, err error) {
 	wg = &sync.WaitGroup{}
 
-	publisher, err := mqtt.NewPublisher(ctx, wg, config.MqttBroker, config.MqttUser, config.MqttPw, config.MqttClientId)
+	publisher, err := mqtt.NewPublisher(ctx, wg, config.MqttBroker, config.MqttUser, config.MqttPw, config.MqttClientId, config.MqttQos, config.Debug)
+	if err != nil {
+		debug.PrintStack()
+		return wg, err
+	}
+	var mappings []lib.PathTopicMappingString
+	err = json.Unmarshal([]byte(config.MqttTopicMapping), &mappings)
 	if err != nil {
 		debug.PrintStack()
 		return wg, err
 	}
 
-	handler := Handler{
-		Publisher: publisher,
-		MqttTopic: config.MqttTopic,
+	filterQuery := &config.FilterQuery
+
+	if len(config.FilterQuery) == 0 {
+		filterQuery = nil
 	}
 
-	if len(config.FilterPath) > 0 && len(config.FilterValue) > 0 {
-		handler.FilterPath = []interface{}{config.FilterPath}
-		handler.FilterValue = config.FilterValue
+	handler, err := NewHandler(publisher, mappings, filterQuery)
+	if err != nil {
+		debug.PrintStack()
+		return wg, err
 	}
 
 	var offset int64

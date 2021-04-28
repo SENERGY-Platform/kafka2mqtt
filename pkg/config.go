@@ -32,14 +32,14 @@ type Config struct {
 	KafkaOffset    string
 	KafkaGroupId   string
 
-	FilterPath  string
-	FilterValue string
+	FilterQuery string
 
-	MqttBroker   string
-	MqttUser     string //keycloak-client
-	MqttPw       string //keycloak-secret
-	MqttClientId string
-	MqttTopic    string
+	MqttBroker       string
+	MqttUser         string //keycloak-client
+	MqttPw           string //keycloak-secret
+	MqttClientId     string
+	MqttQos          uint8
+	MqttTopicMapping string
 
 	Debug bool
 }
@@ -89,6 +89,10 @@ func handleEnvironmentVars(config *Config) {
 			if configValue.FieldByName(fieldName).Kind() == reflect.Int64 {
 				i, _ := strconv.ParseInt(envValue, 10, 64)
 				configValue.FieldByName(fieldName).SetInt(i)
+			}
+			if configValue.FieldByName(fieldName).Kind() == reflect.Uint8 {
+				i, _ := strconv.ParseUint(envValue, 10, 8)
+				configValue.FieldByName(fieldName).SetUint(i)
 			}
 			if configValue.FieldByName(fieldName).Kind() == reflect.String {
 				configValue.FieldByName(fieldName).SetString(envValue)

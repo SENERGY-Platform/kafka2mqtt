@@ -17,36 +17,97 @@
 package pkg
 
 import (
+	"encoding/json"
+	"errors"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/kafka"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/mqtt"
-	"github.com/yasuyuky/jsonpath"
+	"github.com/itchyny/gojq"
 	"log"
 	"time"
 )
 
-type Handler struct{
-	Publisher *mqtt.Publisher
-	MqttTopic string
-	FilterPath []interface{}
-	FilterValue interface{}
+type Handler struct {
+	Publisher   *mqtt.Publisher
+	Mappings    []lib.PathTopicMapping
+	FilterQuery *gojq.Query
 }
 
-func(this *Handler) handleMessage(topic string, msg []byte, time time.Time) error {
-	messageString := string(msg)
-	if this.FilterPath != nil && this.FilterValue != nil {
-		data, err := jsonpath.DecodeString(messageString)
+func NewHandler(publisher *mqtt.Publisher, mappings []lib.PathTopicMappingString, FilterQuery *string) (handler Handler, err error) {
+	transformedMappings := make([]lib.PathTopicMapping, len(mappings))
+	for i := range mappings {
+		transformedMappings[i], err = mappings[i].ToMapping()
 		if err != nil {
-			return err
+			return
 		}
-		v, err := jsonpath.Get(data, this.FilterPath,nil)
-		if err != nil || v == nil || v != this.FilterValue {
+	}
+	handler.Publisher = publisher
+	handler.Mappings = transformedMappings
+	if FilterQuery != nil {
+		handler.FilterQuery, err = gojq.Parse(*FilterQuery)
+	}
+	return
+}
+
+func (this *Handler) handleMessage(_ string, msg []byte, _ time.Time) error {
+	var data interface{}
+	err := json.Unmarshal(msg, &data)
+	if err != nil {
+		return err
+	}
+	if this.FilterQuery != nil {
+		iter := this.FilterQuery.Run(data)
+		found := false
+		for {
+			v, ok := iter.Next()
+			if !ok {
+				break
+			}
+			if err, ok := v.(error); ok {
+				return err
+			}
+			vBool, ok := v.(bool)
+			if !ok {
+				return errors.New("filterQuery returned on bool value")
+			}
+			if vBool {
+				found = true
+			}
+		}
+		if !found {
 			return nil
 		}
 	}
-	err := this.Publisher.Publish(this.MqttTopic, messageString)
-	return err
+	for i := range this.Mappings {
+		iter := this.Mappings[i].Query.Run(data)
+		for {
+			v, ok := iter.Next()
+			if !ok {
+				break
+			}
+			if err, ok := v.(error); ok {
+				return err
+			}
+
+			var mqttMsg string
+			mqttMsg, isString := v.(string)
+			if !isString {
+				bs, err := json.Marshal(v)
+				if err != nil {
+					return err
+				}
+				mqttMsg = string(bs)
+			}
+			err = this.Publisher.Publish(this.Mappings[i].Topic, mqttMsg)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
-func handleError(err error, consumer *kafka.Consumer) {
+func handleError(err error, _ *kafka.Consumer) {
 	log.Println(err)
 }
