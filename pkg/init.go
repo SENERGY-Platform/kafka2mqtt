@@ -56,14 +56,14 @@ func Start(ctx context.Context, config Config) (wg *sync.WaitGroup, err error) {
 
 	var offset int64
 	switch config.KafkaOffset {
-	case "latest":
+	case "latest", "largest":
 		offset = kafka.Latest
 		break
-	case "earliest":
+	case "earliest", "smallest":
 		offset = kafka.Earliest
 		break
 	default:
-		log.Println("WARN: Unknown kafka offset. Use 'latest' or 'earliest'. Using latest")
+		log.Println("WARN: Unknown kafka offset. Use 'latest/largest' or 'earliest/smallest'. Using latest")
 		offset = kafka.Latest
 	}
 	_, err = kafka.NewConsumer(ctx, wg, config.KafkaBootstrap, []string{config.KafkaTopic}, config.KafkaGroupId, offset, handler.handleMessage, handleError, config.Debug)
