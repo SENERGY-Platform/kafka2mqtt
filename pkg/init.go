@@ -24,13 +24,17 @@ import (
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/mqtt"
 	"log"
 	"runtime/debug"
+	"strings"
 	"sync"
 )
 
 func Start(ctx context.Context, config Config) (wg *sync.WaitGroup, err error) {
 	wg = &sync.WaitGroup{}
-
-	publisher, err := mqtt.NewPublisher(ctx, wg, config.MqttBroker, config.MqttUser, config.MqttPw, config.MqttClientId, config.MqttQos, config.Debug)
+	broker := config.MqttBroker
+	if !strings.Contains(broker, ":") {
+		broker += ":1883"
+	}
+	publisher, err := mqtt.NewPublisher(ctx, wg, broker, config.MqttUser, config.MqttPw, config.MqttClientId, config.MqttQos, config.Debug)
 	if err != nil {
 		debug.PrintStack()
 		return wg, err
