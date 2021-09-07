@@ -16,7 +16,11 @@
 
 package lib
 
-import "github.com/itchyny/gojq"
+import (
+	"github.com/itchyny/gojq"
+	"strings"
+	"unicode"
+)
 
 type PathTopicMapping struct {
 	Query *gojq.Code
@@ -29,7 +33,19 @@ type PathTopicMappingString struct {
 }
 
 func (mapping *PathTopicMappingString) ToMapping() (PathTopicMapping, error) {
-	query, err := gojq.Parse(mapping.Query)
+	queryString := ""
+	queryParts := strings.Split(mapping.Query, ".")
+	for _, queryPart := range queryParts {
+		if len(queryPart) == 0 {
+			continue
+		}
+		if unicode.IsDigit(rune(queryPart[0])) {
+			queryString += "[\"" + queryPart + "\"]"
+		} else {
+			queryString += "." + queryPart
+		}
+	}
+	query, err := gojq.Parse(queryString)
 	if err != nil {
 		return PathTopicMapping{}, err
 	}
