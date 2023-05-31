@@ -52,6 +52,7 @@ type Consumer struct {
 func (this *Consumer) start() error {
 	config := sarama.NewConfig()
 	config.Consumer.Offsets.Initial = this.offset
+	config.Consumer.MaxWaitTime = time.Second
 
 	client, err := sarama.NewConsumerGroup(strings.Split(this.kafkaBootstrap, ","), this.groupId, config)
 	if err != nil {
