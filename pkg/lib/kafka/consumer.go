@@ -18,11 +18,13 @@ package kafka
 
 import (
 	"context"
-	"github.com/Shopify/sarama"
-	"log"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/log"
+	"github.com/Shopify/sarama"
 )
 
 const Latest = sarama.OffsetNewest
@@ -58,18 +60,20 @@ func (this *Consumer) start() error {
 
 	client, err := sarama.NewConsumerGroup(strings.Split(this.kafkaBootstrap, ","), this.groupId, config)
 	if err != nil {
-		log.Panicf("Error creating consumer group client: %v", err)
+		log.Logger.Error("error creating consumer group client", attributes.ErrorKey, err)
+		panic(err)
 	}
 
 	go func() {
 		for {
 			select {
 			case <-this.ctx.Done():
-				log.Println("close kafka reader")
+				log.Logger.Info("close kafka reader")
 				return
 			default:
 				if err := client.Consume(this.ctx, this.topics, this); err != nil {
-					log.Panicf("Error from consumer: %v", err)
+					log.Logger.Error("error from consumer", attributes.ErrorKey, err)
+					panic(err)
 				}
 				// check if context was cancelled, signaling that the consumer should stop
 				if this.ctx.Err() != nil {
@@ -81,7 +85,7 @@ func (this *Consumer) start() error {
 	}()
 
 	<-this.ready // Await till the consumer has been set up
-	log.Println("Kafka consumer up and running...")
+	log.Logger.Info("kafka consumer up and running")
 
 	return err
 }
@@ -95,7 +99,7 @@ func (this *Consumer) Setup(sarama.ConsumerGroupSession) error {
 
 // Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
 func (this *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
-	log.Println("Cleaned up kafka session")
+	log.Logger.Info("cleaned up kafka session")
 	this.wg.Done()
 	return nil
 }
@@ -105,11 +109,11 @@ func (this *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sa
 	for message := range claim.Messages() {
 		select {
 		case <-this.ctx.Done():
-			log.Println("Ignoring queued kafka messages for faster shutdown")
+			log.Logger.Info("ignoring queued kafka messages for faster shutdown")
 			return nil
 		default:
 			if this.debug {
-				log.Println(message.Topic, message.Timestamp, string(message.Value))
+				log.Logger.Debug("kafka message", "topic", message.Topic, "timestamp", message.Timestamp, "value", string(message.Value))
 			}
 			err := this.listener(message.Topic, message.Value, message.Timestamp)
 			if err != nil {

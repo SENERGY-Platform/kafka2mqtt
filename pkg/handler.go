@@ -19,12 +19,14 @@ package pkg
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/kafka"
 	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/mqtt"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/log"
 	"github.com/itchyny/gojq"
-	"log"
-	"time"
 )
 
 type Handler struct {
@@ -109,5 +111,5 @@ func (this *Handler) handleMessage(_ string, msg []byte, _ time.Time) error {
 }
 
 func handleError(err error, _ *kafka.Consumer) {
-	log.Println(err)
+	log.Logger.Error("kafka message handling failed", attributes.ErrorKey, err)
 }

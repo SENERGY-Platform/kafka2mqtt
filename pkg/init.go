@@ -19,16 +19,19 @@ package pkg
 import (
 	"context"
 	"encoding/json"
-	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib"
-	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/kafka"
-	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/mqtt"
-	"log"
 	"runtime/debug"
 	"strings"
 	"sync"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/config"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/kafka"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/lib/mqtt"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/log"
 )
 
-func Start(ctx context.Context, config Config) (wg *sync.WaitGroup, err error) {
+func Start(ctx context.Context, config config.Config) (wg *sync.WaitGroup, err error) {
 	wg = &sync.WaitGroup{}
 	broker := config.MqttBroker
 	if !strings.Contains(broker, ":") {
@@ -67,12 +70,12 @@ func Start(ctx context.Context, config Config) (wg *sync.WaitGroup, err error) {
 		offset = kafka.Earliest
 		break
 	default:
-		log.Println("WARN: Unknown kafka offset. Use 'latest/largest' or 'earliest/smallest'. Using latest")
+		log.Logger.Warn("unknown kafka offset, using latest", "offset", config.KafkaOffset)
 		offset = kafka.Latest
 	}
 	_, err = kafka.NewConsumer(ctx, wg, config.KafkaBootstrap, []string{config.KafkaTopic}, config.KafkaGroupId, offset, handler.handleMessage, handleError, config.Debug)
 	if err != nil {
-		log.Fatal("ERROR: unable to start kafka connection ", err)
+		log.Logger.Error("unable to start kafka connection", attributes.ErrorKey, err)
 		return wg, err
 	}
 

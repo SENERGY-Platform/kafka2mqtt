@@ -19,9 +19,11 @@ package mqtt
 import (
 	"context"
 	"errors"
-	paho "github.com/eclipse/paho.mqtt.golang"
-	"log"
 	"sync"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/log"
+	paho "github.com/eclipse/paho.mqtt.golang"
 )
 
 type Publisher struct {
@@ -42,10 +44,10 @@ func NewPublisher(ctx context.Context, wg *sync.WaitGroup, broker string, user s
 
 	mqtt.client = paho.NewClient(options)
 	if token := mqtt.client.Connect(); token.Wait() && token.Error() != nil {
-		log.Println("Error on Publisher.Connect(): ", broker, user, pw, client, token.Error())
+		log.Logger.Error("error on publisher connect", attributes.ErrorKey, token.Error(), "broker", broker, "user", user, "client", client)
 		return mqtt, token.Error()
 	}
-	log.Println("MQTT publisher up and running...")
+	log.Logger.Info("mqtt publisher up and running")
 	wg.Add(1)
 	go func() {
 		<-ctx.Done()
@@ -62,7 +64,7 @@ func (this *Publisher) Publish(topic string, msg string) (err error) {
 	}
 	token := this.client.Publish(topic, this.qos, false, msg)
 	if this.debug {
-		log.Printf("Publish Mqtt on topic %v: %v", topic, msg)
+		log.Logger.Debug("publish mqtt", "topic", topic, "message", msg)
 	}
 	if token.Wait() && token.Error() != nil {
 		return token.Error()

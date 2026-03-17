@@ -19,27 +19,33 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/SENERGY-Platform/kafka2mqtt/pkg"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg"
+	"github.com/SENERGY-Platform/kafka2mqtt/pkg/config"
+	_log "github.com/SENERGY-Platform/kafka2mqtt/pkg/log"
 )
 
 func main() {
 	configLocation := flag.String("config", "config.json", "configuration file")
 	flag.Parse()
 
-	config, err := pkg.LoadConfig(*configLocation)
+	config, err := config.LoadConfig(*configLocation)
 	if err != nil {
 		log.Fatal("ERROR: unable to load config ", err)
 	}
+	_log.Init(config)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	wg, err := pkg.Start(ctx, config)
 	if err != nil {
+		_log.Logger.Error("unable to start pkg", attributes.ErrorKey, err)
 		log.Fatal(err)
 	}
 
@@ -48,11 +54,11 @@ func main() {
 		shutdown := make(chan os.Signal, 1)
 		signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 		sig := <-shutdown
-		log.Println("received shutdown signal", sig)
+		_log.Logger.Info("received shutdown signal", "signal", sig)
 		shutdownTime = time.Now()
 		cancel()
 	}()
 
 	wg.Wait()
-	log.Println("Shutdown complete, took", time.Since(shutdownTime))
+	_log.Logger.Info("Shutdown complete, took", "duration", time.Since(shutdownTime))
 }

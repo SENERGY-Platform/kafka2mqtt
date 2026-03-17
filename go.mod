@@ -1,6 +1,6 @@
 module github.com/SENERGY-Platform/kafka2mqtt
 
-go 1.23.0
+go 1.26.1
 
 require (
 	github.com/Shopify/sarama v1.28.0
@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/SENERGY-Platform/go-service-base/struct-logger v0.6.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eapache/go-resiliency v1.2.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect

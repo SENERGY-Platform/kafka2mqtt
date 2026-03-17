@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package pkg
+package config
 
 import (
 	"encoding/json"
@@ -41,10 +41,11 @@ type Config struct {
 	MqttQos          uint8
 	MqttTopicMapping string
 
-	Debug bool
+	Debug      bool
+	LogHandler string
 }
 
-//loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
+// loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
 func LoadConfig(location string) (config Config, err error) {
 	file, err2 := os.Open(location)
 	if err2 != nil {
