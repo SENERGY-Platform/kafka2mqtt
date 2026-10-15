@@ -36,7 +36,7 @@ type Config struct {
 
 	MqttBroker       string
 	MqttUser         string //keycloak-client
-	MqttPw           string //keycloak-secret
+	MqttPw           string `config:"secret"` //keycloak-secret
 	MqttClientId     string
 	MqttQos          uint8
 	MqttTopicMapping string
@@ -83,10 +83,15 @@ func handleEnvironmentVars(config *Config) {
 	configType := configValue.Type()
 	for index := 0; index < configType.NumField(); index++ {
 		fieldName := configType.Field(index).Name
+		fieldConfig := configType.Field(index).Tag.Get("config")
 		envName := fieldNameToEnvName(fieldName)
 		envValue := os.Getenv(envName)
 		if envValue != "" {
-			log.Println("use environment variable: ", envName, " = ", envValue)
+			loggedEnvValue := envValue
+			if strings.Contains(fieldConfig, "secret") {
+				loggedEnvValue = "***"
+			}
+			log.Println("use environment variable: ", envName, " = ", loggedEnvValue)
 			if configValue.FieldByName(fieldName).Kind() == reflect.Int64 {
 				i, _ := strconv.ParseInt(envValue, 10, 64)
 				configValue.FieldByName(fieldName).SetInt(i)
